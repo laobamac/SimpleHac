@@ -31,11 +31,11 @@ def edit_kernel_add(action, kextname, status, plist_file='temp/config.plist'):
         new_kext = {
             'Arch': 'Any',
             'BundlePath': kext_path,
-            'Comment': f'Custom kernel extension {kextname}',
+            'Comment': f'SimpleHac {kextname}',
             'Enabled': True,
             'ExecutablePath': f"Contents/MacOS/{kextname}",
             'MaxKernel': '',
-            'MinKernel': '10.0.0',
+            'MinKernel': '',
             'PlistPath': f"Contents/Info.plist"
         }
         kernel_add.append(new_kext)
