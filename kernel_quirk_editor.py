@@ -1,4 +1,4 @@
-# kernel_quirks_editor.py
+# kernel_quirk_editor.py
 # powered by laobamac, 请遵循GPLv3开源协议
 import plistlib
 import argparse
@@ -51,6 +51,6 @@ def main():
         edit_kernel_quirk(args.quirkname, args.status)
     except Exception as e:
         print(f"Error: {e}")
-# python kernel_quirks_editor.py quirkname status
+# python kernel_quirk_editor.py quirkname status
 if __name__ == "__main__":
     main()
