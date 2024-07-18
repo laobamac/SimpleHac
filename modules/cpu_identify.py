@@ -1,6 +1,7 @@
 import cpuinfo
 import re
-
+import psutil
+# powered by laobamac,请遵循GPLv3开源协议
 def identify_cpu():
     # 获取 CPU 信息
     info = cpuinfo.get_cpu_info()
@@ -8,8 +9,8 @@ def identify_cpu():
     # 获取 CPU 型号
     cpu_model = info.get('brand_raw', 'Unknown')
 
-    # 获取 CPU 核心数量
-    core_count = info.get('core_count', 'Unknown')
+    # 获取 CPU 核心数量，使用 psutil
+    core_count = psutil.cpu_count(logical=False)
 
     # 检查 CPU 厂商
     if "Intel" in cpu_model:
@@ -42,10 +43,17 @@ def identify_amd_cpu(cpu_model, core_count):
     else:
         series_number = "Unknown"
 
+    # 尝试匹配数字并获取代数
+    match = re.search(r"(\d{4})", cpu_model)
+    if match:
+        generation = int(match.group(1)[0]) * 1000
+    else:
+        generation = "Unknown"
+
     # 检查是否有核显
     has_gpu = "G" in cpu_model
 
-    return "AMD", series_number * 1000, cpu_model, has_gpu, core_count
+    return "AMD", generation, cpu_model, has_gpu, core_count
 
 def main():
     vendor, generation, model, gpu, core_count = identify_cpu()
