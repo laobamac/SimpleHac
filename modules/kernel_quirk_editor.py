@@ -3,15 +3,14 @@
 import plistlib
 import argparse
 import os
-# 将配置文件置于temp/config.plist
-def edit_kernel_quirk(quirkname, status, plist_file='temp/config.plist', output_file='temp/config_modified.plist'):
+
+def edit_kernel_quirk(quirkname, status, plist_file='temp/config.plist'):
     """
     编辑 Kernel 中的 Quirks 项。
 
     :param quirkname: 要编辑的 Quirks 名称
     :param status: 状态，1 表示启用（true），2 表示禁用（false）
     :param plist_file: 输入的 plist 文件名
-    :param output_file: 输出的 plist 文件名
     """
     # 检查状态参数
     if status not in (1, 2):
@@ -35,7 +34,8 @@ def edit_kernel_quirk(quirkname, status, plist_file='temp/config.plist', output_
         raise KeyError(f"Quirk '{quirkname}' not found in Kernel Quirks")
 
     # 保存修改后的 plist 文件
-    with open(output_file, 'wb') as f:
+    with open(plist_file, 'wb') as f:
+        plist_data['Kernel']['Quirks'] = kernel_quirks
         plistlib.dump(plist_data, f, sort_keys=False)
 
     print(f"Quirk '{quirkname}' has been {'enabled' if status == 1 else 'disabled'}.")
@@ -51,6 +51,6 @@ def main():
         edit_kernel_quirk(args.quirkname, args.status)
     except Exception as e:
         print(f"Error: {e}")
-# python kernel_quirk_editor.py quirkname status
+
 if __name__ == "__main__":
     main()
