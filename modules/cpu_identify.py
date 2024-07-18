@@ -1,47 +1,49 @@
 # cpu_identify.py
 # powered by laobamac,请遵循GPLv3开源协议
-import platform
+import cpuinfo
 import re
 
 def identify_cpu():
-    cpu_info = platform.processor()
-    if "Intel" in cpu_info:
-        return identify_intel_cpu()
-    elif "AMD" in cpu_info:
-        return identify_amd_cpu()
-    else:
-        return "Unknown", "Unknown", "Unknown", "Unknown"
-
-def identify_intel_cpu():
-    model = platform.platform().split()[-1]
+    # 获取 CPU 信息
+    info = cpuinfo.get_cpu_info()
     
-    # 尝试匹配 Intel Core 系列
-    match = re.search(r"Intel$$R$$ Core(TM) i\d+-(\d+)", model)
+    # 获取 CPU 型号
+    cpu_model = info.get('brand_raw', 'Unknown')
+    
+    # 检查 CPU 厂商
+    if "Intel" in cpu_model:
+        return identify_intel_cpu(cpu_model)
+    elif "AMD" in cpu_model:
+        return identify_amd_cpu(cpu_model)
+    else:
+        return "Unknown", "Unknown", cpu_model, "Unknown"
+
+def identify_intel_cpu(cpu_model):
+    # 尝试匹配 Intel CPU 代数
+    match = re.search(r"Intel$$R$$ Core(TM) i\d+-(\d+)", cpu_model)
     if match:
         generation = int(match.group(1))
-        return "Intel", generation, model, has_integrated_gpu(model)
+    else:
+        generation = "Unknown"
     
-    return "Intel", "Unknown", model, has_integrated_gpu(model)
+    # 检查是否有核显
+    has_gpu = "F" not in cpu_model and "KF" not in cpu_model
+    
+    return "Intel", generation, cpu_model, has_gpu
 
-def identify_amd_cpu():
-    model = platform.platform().split()[-1]
-    
+def identify_amd_cpu(cpu_model):
     # 尝试匹配 AMD Ryzen 系列
-    match = re.search(r"AMD Ryzen (?:R\d+)", model)
+    match = re.search(r"AMD Ryzen (?:R\d+)", cpu_model)
     if match:
         series = match.group(1)
         series_number = int(re.search(r"\d+", series).group())
-        return "AMD", series_number, model, has_integrated_gpu(model)
+    else:
+        series_number = "Unknown"
     
-    return "AMD", "Unknown", model, has_integrated_gpu(model)
-
-def has_integrated_gpu(model):
-    # 检查 Intel CPU 是否有集成显卡（型号中不包含 "F" 和 "KF"）
-    if "Intel" in model:
-        return not ("F" in model or "KF" in model)
+    # 检查是否有核显
+    has_gpu = "G" in cpu_model
     
-    # 检查 AMD CPU 是否有集成显卡（型号中包含 "G"）
-    return "G" in model
+    return "AMD", series_number, cpu_model, has_gpu
 
 def main():
     vendor, generation, model, gpu = identify_cpu()
