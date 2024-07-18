@@ -1,6 +1,6 @@
 import cpuinfo
 import re
-# powered by laobamac,请遵循GPLv3开源协议
+
 def identify_cpu():
     # 获取 CPU 信息
     info = cpuinfo.get_cpu_info()
@@ -17,7 +17,7 @@ def identify_cpu():
     elif "AMD" in cpu_model:
         return identify_amd_cpu(cpu_model, core_count)
     else:
-        return "Unknown", "Unknown", cpu_model, "Unknown", core_count
+        return "Unknown", "Unknown", cpu_model, "No", core_count
 
 def identify_intel_cpu(cpu_model, core_count):
     # 尝试匹配 Intel CPU 代数
@@ -38,14 +38,14 @@ def identify_amd_cpu(cpu_model, core_count):
     if match:
         series = match.group(1)
         # 提取系列号，假设系列号是型号中的第一个数字
-        series_number = int(re.search(r"(\d+)00", cpu_model).group(1)) * 1000
+        series_number = int(re.search(r"R(\d+)", cpu_model).group(1))
     else:
         series_number = "Unknown"
 
     # 检查是否有核显
     has_gpu = "G" in cpu_model
 
-    return "AMD", series_number, cpu_model, has_gpu, core_count
+    return "AMD", series_number * 1000, cpu_model, has_gpu, core_count
 
 def main():
     vendor, generation, model, gpu, core_count = identify_cpu()
