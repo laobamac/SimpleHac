@@ -35,13 +35,13 @@ def edit_boot_args(action, value, plist_file='temp/config.plist'):
         # 添加 boot-args
         if boot_args:
             boot_args += ' '
-        boot_args += value
+        boot_args += value.strip()
         print(f"New boot-args: {boot_args}")
     elif action == 3:
         # 删除 boot-args
         args_list = boot_args.split(' ')
         new_args_list = [arg for arg in args_list if arg != value]
-        boot_args = ' '.join(new_args_list)
+        boot_args = ' '.join(new_args_list).strip()
         print(f"New boot-args: {boot_args}")
 
     # 更新 NVRAM 数据
