@@ -237,3 +237,5 @@ def main(inipath):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Auto create EFI for Hackintosh.")
     parser.add_argument("inipath", type=str, help="Path to the INI configuration file")
+    args = parser.parse_args()
+    main(args.inipath)
