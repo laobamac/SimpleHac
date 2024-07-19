@@ -6,7 +6,7 @@ def install(package):
 
 if __name__ == "__main__":
     # 列出所有需要安装的依赖
-    dependencies = ['tqdm', 'cpuinfo', 'shutil', 'requests']
+    dependencies = ['tqdm', 'cpuinfo', 'shutil', 'requests', 'psutil', 'gpuinfo']
 
     # 使用 pip 安装依赖
     for package in dependencies:
