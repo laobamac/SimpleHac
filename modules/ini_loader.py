@@ -26,6 +26,27 @@ def ensure_temp_dir_exists():
     if not os.path.exists(temp_path):
         os.makedirs(temp_path)
 
+def edit_boot_args(new_boot_args, plist_file='temp/config.plist'):
+    """编辑 NVRAM 中的 boot-args"""
+    with open(plist_file, 'rb') as f:
+        plist_data = plistlib.load(f)
+
+    nvram_key = '7C436110-AB2A-4BBB-A880-FE41995C9F82'
+    if new_boot_args:
+        # 如果提供了新的 boot-args，则更新
+        current_boot_args = plist_data.get('NVRAM', {}).get(nvram_key, {}).get('boot-args', '')
+        if current_boot_args != new_boot_args:
+            plist_data['NVRAM'][nvram_key] = {'boot-args': new_boot_args}
+            print(f"Updated boot-args to: '{new_boot_args}'")
+        else:
+            print("boot-args is already set to the desired value.")
+    else:
+        # 如果 INI 文件中的 boot-args 为空，则保持不变
+        print("No new boot-args provided, keeping the original value.")
+
+    with open(plist_file, 'wb') as f:
+        plistlib.dump(plist_data, f, sort_keys=False)
+
 def edit_kernel_add(action, kextname, status, plist_file='temp/config.plist'):
     """编辑 Kernel 中的 Add 项"""
     ensure_temp_dir_exists()
@@ -163,6 +184,10 @@ def load_config(inipath):
     config = configparser.ConfigParser()
     config.read(inipath)
     return config
+    # 检查 NVRAM 部分是否有 boot-args 配置
+    if 'NVRAM' in config.sections():
+        boot_args = config['NVRAM'].get('boot-args', '')
+        edit_boot_args(boot_args)
 
 def process_kexts_and_ssdts(config, section):
     """处理Kernel和ACPI部分的Kext和SSDT列表"""
@@ -211,4 +236,4 @@ def main(inipath):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Auto create EFI for Hackintosh.")
-    parser.add_argument("inipath", type=str, help="Path to the INI configuration file
+    parser.add_argument("inipath", type=str, help="Path to the INI configuration file")
