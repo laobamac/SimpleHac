@@ -3,7 +3,7 @@ import shutil
 import zipfile
 import requests
 from tqdm import tqdm
-# powered by laobamac
+# powered by laobamac,请遵循GPLv3开源协议
 def ensure_target_folder_exists(target_path):
     """确保目标文件夹存在，如果不存在则创建"""
     if not os.path.exists(target_path):
