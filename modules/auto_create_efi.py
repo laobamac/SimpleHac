@@ -1,56 +1,13 @@
-# auto_create_efi.py
-# Copyright (C) 2024 laobamac
-# 偷开源项目魔改后收费贩卖，非法植入片段的死全家
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 import os
 import shutil
-import argparse
-import requests
-import subprocess
 import zipfile
-import time
+import requests
 from tqdm import tqdm
 
 def ensure_target_folder_exists(target_path):
     """确保目标文件夹存在，如果不存在则创建"""
     if not os.path.exists(target_path):
         os.makedirs(target_path)
-
-def copy_config_plist(resources_path, oc_folder, cpu_vendor, cores):
-    """根据CPU类型和核心数量复制相应的config.plist文件"""
-    config_folder = os.path.join(resources_path, cpu_vendor.lower(), str(cores))
-    config_plist_path = os.path.join(config_folder, 'config.plist')
-    if os.path.exists(config_plist_path):
-        shutil.copy(config_plist_path, oc_folder)
-        print(f"config.plist for {cpu_vendor} with {cores} cores copied to {oc_folder}")
-    else:
-        print("config.plist not found.")
-
-def copy_opencore_files(resources_path, oc_version, target_oc_path, target_boot_path):
-    """从resources文件夹中的OpenCore复制文件"""
-    opencore_path = os.path.join(resources_path, 'OpenCore')
-    opencore_version_path = os.path.join(opencore_path, oc_version)
-
-    for filename in ['BOOTx64.efi', 'OpenCore.efi']:
-        src_file_path = os.path.join(opencore_version_path, filename)
-        dst_file_path = os.path.join(target_oc_path, filename)
-        if os.path.exists(src_file_path):
-            shutil.copy(src_file_path, dst_file_path)
-            print(f"{filename} copied to {target_oc_path}")
-        else:
-            print(f"{filename} not found in OpenCore version {oc_version}.")
 
 def download_file(url, folder_path, filename):
     """下载文件并显示进度条"""
@@ -70,28 +27,27 @@ def download_file(url, folder_path, filename):
     else:
         print(f"Failed to download {filename}")
 
+def extract_and_copy_kext(zip_path, extract_path, kext_name):
+    """解压zip文件并将kext文件夹复制到指定位置"""
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_path)
+    kext_path = os.path.join(extract_path, kext_name)
+    target_path = os.path.join(extract_path, '..', 'Kexts', kext_name)
+    shutil.copytree(kext_path, target_path)
+    os.remove(zip_path)
+
 def download_kexts_and_ssdts(kexts, ssdts, download_path):
     """下载Kexts和SSDTs"""
     failed_downloads = []
     for kext in kexts:
-        url = f"http://api.simplehac.cn/v1/dl/kext/{kext}"
-        download_file(url, os.path.join(download_path, 'Kexts'), kext)
+        url = f"http://api.simplehac.cn/v1/dl/kext/{kext}.zip"
+        download_file(url, os.path.join(download_path, 'Kexts'), f"{kext}.zip")
+        extract_path = os.path.join(download_path, 'Kexts', kext)
+        ensure_target_folder_exists(extract_path)
+        extract_and_copy_kext(os.path.join(download_path, 'Kexts', f"{kext}.zip"), extract_path, kext)
     for ssdt in ssdts:
         url = f"http://api.simplehac.cn/v1/dl/ssdt/{ssdt}"
         download_file(url, os.path.join(download_path, 'ACPI'), ssdt)
-    
-    if failed_downloads:
-        print("Failed to download:")
-        for failed in failed_downloads:
-            print(failed)
-
-def run_ini_loader(ini_loader_path):
-    """运行ini_loader.py脚本并等待完成"""
-    result = subprocess.run(['python', ini_loader_path], check=True, capture_output=True, text=True)
-    if result.returncode != 0:
-        print("Error during INI loader execution:", result.stderr)
-    else:
-        print("INI loader executed successfully")
 
 def main(oc_version, cpu_vendor=None, generation=None, igpu=None, cores=None):
     # 如果用户没有指定CPU信息，使用identify_cpu获取
