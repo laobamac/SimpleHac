@@ -10,8 +10,8 @@ def get_hardware_info(type, property_name):
     command = f'wmic path Win32_{type} get {property_name}'
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     if result.returncode == 0:
-        # 排除包含"Name"或"Mirage Driver"的行
-        return [line.strip() for line in result.stdout.split('\n') if line.strip() and "Name" not in line and "Mirage Driver" not in line]
+        # 排除包含"Name"、"Mirage Driver"或"Model"的行
+        return [line.strip() for line in result.stdout.split('\n') if line.strip() and "Name" not in line and "Mirage Driver" not in line and "Model" not in line]
     else:
         print(f"Failed to get {type} information: {result.stderr}")
         return []
@@ -19,7 +19,7 @@ def get_hardware_info(type, property_name):
 def fetch_hardware_list(hw_type):
     """
     从API获取硬件列表。
-    :param hw_type: 'sgpu', 'dgpu', 'disk'，分别对应支持的显卡列表、存疑的显卡型号列表和不支持的硬盘型号列表。
+    :param hw_type: 'sgpu', 'dgpu', 'disk', 'ddisk'，分别对应支持的显卡列表、存疑的显卡型号列表、不支持的硬盘型号列表和存疑的硬盘型号列表。
     """
     url = f"http://api.simplehac.cn/hw.php?hw={hw_type}"
     try:
@@ -35,7 +35,7 @@ def mark_hardware(hardware_list, supported_list, doubted_list, unsupport_list, h
     根据硬件型号和列表标记硬件。
     """
     for hardware in hardware_list:
-        if "Name" in hardware or "Mirage Driver" in hardware:
+        if "Name" in hardware or "Mirage Driver" in hardware or "Model" in hardware:
             continue  # 跳过包含特定字符串的硬件
         hardware_lower = hardware.lower()
         # 检查显卡是否在支持列表或存疑列表中
@@ -48,7 +48,9 @@ def mark_hardware(hardware_list, supported_list, doubted_list, unsupport_list, h
                 print(f"[Unsupported] {hardware}")
         # 检查硬盘是否在不支持列表中
         elif hardware_type == 'disk':
-            if any(unsupport in hardware_lower for unsupport in unsupport_list):
+            if any(doubted in hardware_lower for doubted in doubted_list):
+                print(f"[Doubted] {hardware}")
+            elif any(unsupport in hardware_lower for unsupport in unsupport_list):
                 print(f"[Unsupported] {hardware}")
             else:
                 print(f"[Supported] {hardware}")
@@ -64,12 +66,13 @@ def main():
     sgpu_list = fetch_hardware_list('sgpu')
     dgpu_list = fetch_hardware_list('dgpu')
     unsupport_disk_list = fetch_hardware_list('disk')
+    doubted_disk_list = fetch_hardware_list('ddisk')
 
     # 根据列表标记显卡
     mark_hardware(gpus, sgpu_list, dgpu_list, [], 'gpu')
 
     # 根据列表标记硬盘
-    mark_hardware(disks, [], [], unsupport_disk_list, 'disk')
+    mark_hardware(disks, [], doubted_disk_list, unsupport_disk_list, 'disk')
 
 if __name__ == "__main__":
     main()
