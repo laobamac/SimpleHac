@@ -1,15 +1,17 @@
 import subprocess
 import requests
 # powered by laobamac，请遵循GPLv3开源协议
-def get_hardware_info(type):
+def get_hardware_info(type, property_name):
     """
     使用WMIC命令获取Windows系统的硬件信息。
     :param type: 'videocontroller' 或 'diskdrive'，分别获取显卡和硬盘信息。
+    :param property_name: WMIC查询的属性名称。
     """
-    command = f'wmic path Win32_{type} get Name'
+    command = f'wmic path Win32_{type} get {property_name}'
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     if result.returncode == 0:
-        return [line.strip() for line in result.stdout.split('\n') if line.strip()]
+        # 排除包含"Name"或"Mirage Driver"的行
+        return [line.strip() for line in result.stdout.split('\n') if line.strip() and "Name" not in line and "Mirage Driver" not in line]
     else:
         print(f"Failed to get {type} information: {result.stderr}")
         return []
@@ -33,23 +35,30 @@ def mark_hardware(hardware_list, supported_list, doubted_list, unsupport_list, h
     根据硬件型号和列表标记硬件。
     """
     for hardware in hardware_list:
+        if "Name" in hardware or "Mirage Driver" in hardware:
+            continue  # 跳过包含特定字符串的硬件
         hardware_lower = hardware.lower()
-        # 如果显卡型号包含在支持列表中，则标记为[Supported]
-        if hardware_type == 'gpu' and any(supported in hardware_lower for supported in supported_list):
-            print(f"[Supported] {hardware}")
-        # 如果显卡型号包含在存疑列表中，则标记为[Doubted]
-        elif hardware_type == 'gpu' and any(doubted in hardware_lower for doubted in doubted_list):
-            print(f"[Doubted] {hardware}")
-        # 如果硬盘型号不包含在不支持列表中，则标记为[Supported]
-        elif hardware_type == 'disk' and not any(unsupport in hardware_lower for unsupport in unsupport_list):
-            print(f"[Supported] {hardware}")
-        else:
-            print(f"[Unsupported] {hardware}")
+        # 检查显卡是否在支持列表或存疑列表中
+        if hardware_type == 'gpu':
+            if any(supported in hardware_lower for supported in supported_list):
+                print(f"[Supported] {hardware}")
+            elif any(doubted in hardware_lower for doubted in doubted_list):
+                print(f"[Doubted] {hardware}")
+            else:
+                print(f"[Unsupported] {hardware}")
+        # 检查硬盘是否在不支持列表中
+        elif hardware_type == 'disk':
+            if any(unsupport in hardware_lower for unsupport in unsupport_list):
+                print(f"[Unsupported] {hardware}")
+            else:
+                print(f"[Supported] {hardware}")
 
 def main():
-    # 获取显卡和硬盘信息
-    gpus = get_hardware_info('videocontroller')
-    disks = get_hardware_info('diskdrive')
+    # 获取显卡信息
+    gpus = get_hardware_info('videocontroller', 'Name')
+
+    # 获取硬盘型号信息
+    disks = get_hardware_info('diskdrive', 'Model')
 
     # 获取硬件列表
     sgpu_list = fetch_hardware_list('sgpu')
