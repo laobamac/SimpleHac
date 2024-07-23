@@ -22,39 +22,40 @@ ini_content += "; Written by laobamac and open-sourced\n"
 ini_content += "; Please follow the GPLv3 open-source protocol\n\n"
 
 # 添加 Quirks 信息
-quirks_sections = ["ACPI", "Booter", "Kernel", "UEFI"]
-for quirk_type in quirks_sections:
-    ini_content += f"[{quirk_type}.Quirks]\n"
-    quirks = plist_data.get(quirk_type, {}).get("Quirks", {})
-    for key, value in quirks.items():
+for quirk_type, quirks_dict in {
+    "ACPI": "ACPI.Quirks",
+    "Booter": "Booter.Quirks",
+    "Kernel": "Kernel.Quirks",
+    "UEFI": "UEFI.Quirks"
+}.items():
+    ini_content += f"[{quirks_dict}]\n"
+    for key, value in plist_data.get(quirk_type, {}).get("Quirks", {}).items():
         ini_content += f"{key}={str(value).lower()}\n"
     ini_content += "\n"
 
 # 添加 Kexts 信息
-kexts_list = plist_data.get("Kernel", {}).get("Add", [])
 ini_content += "[Kexts]\n"
-for kext in kexts_list:
-    kext_name = os.path.basename(kext.get("BundlePath", "")).replace(".kext", "")
-    ini_content += f"{kext_name}.kext={kext.get('Enabled', False)}\n"
+kexts = plist_data.get("Kernel", {}).get("Add", [])
+for kext in kexts:
+    ini_content += f"{kext['BundlePath']}={kext.get('Enabled', False)}\n"
+
 ini_content += "\n"
 
 # 添加 SSDTs 信息
-ssdts_list = plist_data.get("ACPI", {}).get("Add", [])
 ini_content += "[SSDTs]\n"
-for ssdt in ssdts_list:
-    ssdt_name = os.path.splitext(ssdt.get("Path", ""))[0]
-    ini_content += f"{ssdt_name}.aml={ssdt.get('Enabled', True)}\n"
+ssdts = plist_data.get("ACPI", {}).get("Add", [])
+for ssdt in ssdts:
+    ini_content += f"{ssdt['Path']}={ssdt.get('Enabled', False)}\n"
+
 ini_content += "\n"
 
-# 添加 NVRAM 信息
-nvram_add = plist_data.get("NVRAM", {}).get("Add", {})
+# 添加 NVRAM boot-args 信息
+nvram_boot_args = plist_data.get("NVRAM", {}).get("Add", {}).get("7C436110-AB2A-4BBB-A880-FE41995C9F82", {}).get("boot-args", "")
 ini_content += "[NVRAM]\n"
-for key, values in nvram_add.items():
-    for subkey, subvalue in values.items():
-        ini_content += f"{key}.{subkey}={subvalue}\n"
+ini_content += f"boot-args={nvram_boot_args}\n"
 ini_content += "\n"
 
-# 添加 PlatformInfo 机型信息
+# 添加 PlatformInfo 信息
 platform_info = plist_data.get("PlatformInfo", {})
 ini_content += "[PlatformInfo]\n"
 for key, value in platform_info.items():
@@ -63,16 +64,6 @@ for key, value in platform_info.items():
             ini_content += f"{subkey}={subvalue}\n"
     else:
         ini_content += f"{key}={value}\n"
-ini_content += "\n"
-
-# 添加 DeviceProperties 信息
-device_properties = plist_data.get("DeviceProperties", {}).get("Add", {})
-ini_content += "[DeviceProperties]\n"
-for key, values in device_properties.items():
-    ini_content += f"[{key}]\n"
-    for subkey, subvalue in values.items():
-        ini_content += f"{subkey}={subvalue}\n"
-    ini_content += "\n"
 
 # 写入 INI 文件
 with open(ini_path, 'w') as f:
