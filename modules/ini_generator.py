@@ -1,7 +1,7 @@
 import plistlib
 import os
 from argparse import ArgumentParser
-# powered by laobamac,请遵循GPLv3开源协议
+# powered by laobamac，请遵循GPLv3开源协议
 # 解析命令行参数
 parser = ArgumentParser(description='Generate INI configuration from a config.plist file.')
 parser.add_argument('configpath', help='Path to the config.plist file')
@@ -24,10 +24,10 @@ ini_content += "; Please follow the GPLv3 open-source protocol\n\n"
 # 添加 Quirks 信息
 quirks_sections = ["ACPI", "Booter", "Kernel", "UEFI"]
 for quirk_type in quirks_sections:
-    if plist_data.get(quirk_type, {}).get("Quirks"):
-        ini_content += f"[{quirk_type}.Quirks]\n"
-        for key, value in plist_data[quirk_type]["Quirks"].items():
-            ini_content += f"{key}={str(value).lower()}\n"
+    ini_content += f"[{quirk_type}.Quirks]\n"
+    quirks = plist_data.get(quirk_type, {}).get("Quirks", {})
+    for key, value in quirks.items():
+        ini_content += f"{key}={str(value).lower()}\n"
     ini_content += "\n"
 
 # 添加 Kexts 信息
@@ -51,19 +51,28 @@ nvram_add = plist_data.get("NVRAM", {}).get("Add", {})
 ini_content += "[NVRAM]\n"
 for key, values in nvram_add.items():
     for subkey, subvalue in values.items():
-        ini_content += f"{key}={subkey}={subvalue}\n"
+        ini_content += f"{key}.{subkey}={subvalue}\n"
 ini_content += "\n"
 
 # 添加 PlatformInfo 机型信息
 platform_info = plist_data.get("PlatformInfo", {})
 ini_content += "[PlatformInfo]\n"
 for key, value in platform_info.items():
-    if key == "Generic":
+    if isinstance(value, dict):
         for subkey, subvalue in value.items():
             ini_content += f"{subkey}={subvalue}\n"
     else:
         ini_content += f"{key}={value}\n"
 ini_content += "\n"
+
+# 添加 DeviceProperties 信息
+device_properties = plist_data.get("DeviceProperties", {}).get("Add", {})
+ini_content += "[DeviceProperties]\n"
+for key, values in device_properties.items():
+    ini_content += f"[{key}]\n"
+    for subkey, subvalue in values.items():
+        ini_content += f"{subkey}={subvalue}\n"
+    ini_content += "\n"
 
 # 写入 INI 文件
 with open(ini_path, 'w') as f:
